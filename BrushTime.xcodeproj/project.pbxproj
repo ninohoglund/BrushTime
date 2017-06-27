@@ -15,6 +15,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3FE6962F1F031988002A97FA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		3FF52B361EFE80D0007F1E13 /* BrushTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BrushTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3FF52B391EFE80D0007F1E13 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3FF52B3B1EFE80D0007F1E13 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -38,6 +39,7 @@
 		3FF52B2D1EFE80D0007F1E13 = {
 			isa = PBXGroup;
 			children = (
+				3FE6962F1F031988002A97FA /* README.md */,
 				3FF52B381EFE80D0007F1E13 /* BrushTime */,
 				3FF52B371EFE80D0007F1E13 /* Products */,
 			);
