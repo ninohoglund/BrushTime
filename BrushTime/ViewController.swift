@@ -9,7 +9,11 @@
 import UIKit
 
 class ViewController: UIViewController {
-
+    
+    enum AnimationMode {
+        case upper, lower, upperBack, lowerBack, front, moveOut
+    }
+    
     @IBOutlet weak var startButton: UIButton!
     @IBOutlet weak var stopButton: UIButton!
     @IBOutlet weak var timeButton: UIButton!
@@ -20,12 +24,12 @@ class ViewController: UIViewController {
     
     var timerStarted = false
     let times = ["1:30", "2:00", "2:30", "3:00"]
-    let seconds = [9.0, 120.0, 150.0, 180.0]
-    var currentTime = 0
+    let seconds = [20.0, 120.0, 150.0, 180.0]
+    let brushDelay = 0.7
+    let brushSpeed = 0.3 // Lower = faster
+    let animationPhases: [AnimationMode] = [.upper, .lower, .lowerBack, .upperBack, .front, .front]
+    var currentTime = 0, currentPhase = 0
     
-    enum AnimationMode {
-        case upper, lower, upperBack, lowerBack, front, moveOut
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -82,35 +86,36 @@ class ViewController: UIViewController {
     
     func startBrushing() {
         toothBrushView.isHidden = false
-        //switchToAnimation(mode: .lower)
-        switchToAnimation(mode: .upperBack)
         
         progressView.frame.size.width = 1.0
-        fillProgressBar(in: seconds[currentTime])
+        fillProgressBar(in: seconds[currentTime] + brushDelay)
+        
+        currentPhase = 0
+        moveToNextAnimationPhase(startFromTheBeginning: true)
     }
     
     func fillProgressBar(in seconds: Double) {
         UIView.animate(withDuration: seconds, delay: 0, options: [.curveLinear, .beginFromCurrentState], animations: {
             self.progressView.frame.size.width = self.view.frame.size.width;
-        }, completion: {
-            _ in
-            self.stopTimer(self.startButton)
-        })
+        }, completion: nil)
     }
     
     func originForAnimation(mode:AnimationMode) -> CGPoint {
+        let x = self.mouthImageView.center.x
+        let y = self.mouthImageView.center.y
+        
         switch mode {
         case .lower:
-            return CGPoint(x: self.mouthImageView.center.x + 15, y: self.mouthImageView.center.y + 4)
+            return CGPoint(x: x + 15, y: y + 4)
         case .upper:
-            return CGPoint(x: self.mouthImageView.center.x + 15, y: self.mouthImageView.center.y - 64)
+            return CGPoint(x: x + 15, y: y - 64)
         case .upperBack:
-            return CGPoint(x: self.mouthImageView.center.x + 15, y: self.mouthImageView.center.y - 120)
+            return CGPoint(x: x + 15, y: y - 120)
         case .lowerBack:
-            return CGPoint(x: self.mouthImageView.center.x + 15, y: self.mouthImageView.center.y + 54)
+            return CGPoint(x: x + 15, y: y + 54)
         case .front:
-            return CGPoint(x: self.mouthImageView.center.x - 136, y: self.mouthImageView.center.y - 100)
-        default:
+            return CGPoint(x: x - 136, y: y - 100)
+        case .moveOut:
             return CGPoint.zero
         }
     }
@@ -128,11 +133,30 @@ class ViewController: UIViewController {
         }
     }
     
+    func moveToNextAnimationPhase(startFromTheBeginning: Bool) {
+        currentPhase = startFromTheBeginning ? 0 : currentPhase + 1
+        if currentPhase < animationPhases.count {
+            switchToAnimation(mode: animationPhases[currentPhase])
+        }
+        else if currentPhase == animationPhases.count {
+            switchToAnimation(mode: .moveOut)
+        } else {
+            stopTimer(self)
+            return
+        }
+        
+        let dispatchTime = DispatchTime.now() + (seconds[currentTime] - brushSpeed) / Double(animationPhases.count)
+        DispatchQueue.main.asyncAfter(deadline: dispatchTime) {
+            self.moveToNextAnimationPhase(startFromTheBeginning: false)
+        }
+        
+    }
+    
     func switchToAnimation(mode: AnimationMode) {
         
         let origin :CGPoint = originForAnimation(mode: mode)
         
-        // Reset animations and set up toothbrush
+        // Reset animations and set up toothbrush (unless moving out)
         if mode != .moveOut {
             toothBrushView.layer.removeAllAnimations()
             toothBrushView.transform = CGAffineTransform.identity
@@ -150,15 +174,15 @@ class ViewController: UIViewController {
             // Move out of the screen
             self.toothBrushView.frame.origin.x = origin.x + 360
             // Move in place and wait
-            UIView.animate(withDuration: 0.5, delay: 0, options: .curveEaseInOut, animations: {
+            UIView.animate(withDuration: self.brushSpeed, delay: 0, options: .curveEaseInOut, animations: {
                 self.toothBrushView.frame.origin.x = origin.x
             }, completion: {
                 _ in
                 // Brush animation
-                UIView.animate(withDuration: 0.5, delay: 0.3, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
+                UIView.animate(withDuration: self.brushSpeed, delay: self.brushDelay, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
                     self.toothBrushView.transform = CGAffineTransform(translationX: 0, y: 128)
                 }, completion: nil)
-                UIView.animate(withDuration: 6, delay: 0.3, options: [.repeat, .autoreverse, .curveLinear], animations: {
+                UIView.animate(withDuration: self.brushSpeed * 12, delay: self.brushDelay, options: [.repeat, .autoreverse, .curveLinear], animations: {
                     self.toothBrushView.frame.origin.x += 148
                 }, completion: nil)
             })
@@ -167,17 +191,17 @@ class ViewController: UIViewController {
             // Move out of the screen
             self.toothBrushView.frame.origin.x = origin.x + 200
             // Move in place and wait
-            UIView.animate(withDuration: 0.5, delay: 0, options: .curveEaseInOut, animations: {
+            UIView.animate(withDuration: self.brushSpeed, delay: 0, options: .curveEaseInOut, animations: {
                 self.toothBrushView.frame.origin.x = origin.x
             }, completion: {
                 _ in
                 // Brush animation
-                UIView.animate(withDuration: 0.5, delay: 0.3, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
+                UIView.animate(withDuration: self.brushSpeed, delay: self.brushDelay, options: [.repeat, .autoreverse, .curveEaseInOut], animations: {
                     self.toothBrushView.transform = CGAffineTransform(translationX: -160, y: 0)
                 }, completion: nil)
             })
         case .moveOut:
-            UIView.animate(withDuration: 0.5, delay: 0, options: .beginFromCurrentState, animations: {
+            UIView.animate(withDuration: self.brushSpeed, delay: 0, options: .beginFromCurrentState, animations: {
                 self.toothBrushView.transform = CGAffineTransform(translationX: 300, y: 0)
                 self.timeButton.alpha = 1.0
             }, completion: nil)
@@ -185,12 +209,3 @@ class ViewController: UIViewController {
     }
 }
 
-
-/*UIView.animateKeyframes(withDuration: 2.0, delay: 0.0, options: [.autoreverse, .repeat], animations: {
- UIView.addKeyframe(withRelativeStartTime: 0.0, relativeDuration: 0.5, animations: {
- self.toothBrushView.transform = CGAffineTransform(translationX: -50, y: 0)
- })
- UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.5, animations: {
- self.toothBrushView.transform = CGAffineTransform(translationX: 50, y: 0)
- })
- }, completion: nil)*/
